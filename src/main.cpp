@@ -17,76 +17,69 @@
 /* ---------------------------------------------------------------------------- */
 
 #include "vex.h"
+// to use complex numbers
+#include <complex>
 
 using namespace vex;
 
-// Robot configuration code.
+// config code
 
-// Brain should be defined by default
+// define brain - lol no brain, much pain
 brain Brain;
 
-motor ClawMotor = motor(PORT3, ratio18_1, false);
-motor ArmMotor = motor(PORT8, ratio18_1, false);
-motor LeftMotor = motor(PORT1, ratio18_1, false);
-motor RightMotor = motor(PORT10, ratio18_1, true);
+// define drivetrain motors, their: ports, gear cartridge, and 
+motor DT_BL = motor(PORT1, ratio6_1, true);
+motor DT_FL = motor(PORT2, ratio6_1, true);
+motor DT_BR = motor(PORT9, ratio6_1, true);
+motor DT_FR = motor(PORT10, ratio6_1, true);
 
 controller Controller1 = controller(primary);
 
-// Begin project code
-
+// test function
 void controller_L1_Pressed(){
-  ArmMotor.spin(forward);
-  while (Controller1.ButtonL1.pressing()) {
-    wait(5, msec);
-  }
-  ArmMotor.stop();
+  Brain.Screen.clearScreen();
+  Brain.Screen.print("code running");
 }
 
-void controller_L2_Pressed(){
-  ArmMotor.spin(reverse);
-  while (Controller1.ButtonL2.pressing()) {
-    wait(5, msec);
-  }
-  ArmMotor.stop();
-}
-
-void controller_R1_Pressed(){
-  ClawMotor.spin(reverse);
-  while (Controller1.ButtonR1.pressing()) {
-    wait(5, msec);
-  }
-  ClawMotor.stop();
-}
-
-void controller_R2_Pressed(){
-  ClawMotor.spin(forward);
-  while (Controller1.ButtonR2.pressing()) {
-    wait(5, msec);
-  }
-  ClawMotor.stop();
-}
 
 int main() {
 
-  // Create Controller callback events - 15 msec delay to ensure events get registered
-  Controller1.ButtonL1.pressed(controller_L1_Pressed);
-  Controller1.ButtonL2.pressed(controller_L2_Pressed);
-  Controller1.ButtonR1.pressed(controller_R1_Pressed);
-  Controller1.ButtonR2.pressed(controller_R2_Pressed);
-  wait(15,msec);
+  // call simple callback event
+  Controller1.ButtonA.pressed(controller_L1_Pressed);
+  wait(15,msec); // Delay to make sure the event gets registered
 
-  // Configure Arm and Claw motor hold settings and velocity
-  ArmMotor.setStopping(hold);
-  ClawMotor.setStopping(hold);
-  ArmMotor.setVelocity(60, percent);
-  ClawMotor.setVelocity(30, percent);
+  DT_BL.spin(forward);
+  DT_FL.spin(forward);
+  DT_BR.spin(reverse);
+  DT_FR.spin(reverse);
 
-  // Main Controller loop to set motors to controller axis postiions
+  // Main loop
   while(true){
-    LeftMotor.setVelocity(Controller1.Axis3.position(), percent);
-    RightMotor.setVelocity(Controller1.Axis2.position(), percent);
-    LeftMotor.spin(forward);
-    RightMotor.spin(forward);
+    float steering = pow((Controller1.Axis4.position()),1.2)/10;
+    if (Controller1.Axis4.position() < 0) {
+      steering = steering*-1;
+    }
+    float speed = Controller1.Axis3.position();
+    float left = speed-steering;
+    float right = speed+steering;
+    if (left > 100) {
+      right = right - (left-100);
+      left = 100;
+    } else if (left < -100) {
+      right = right - (left+100);
+      left = -100;
+    }
+    if (right > 100) {
+      left = left - (right-100);
+      right = 100;
+    } else if (right < -100) {
+      left = left - (right+100);
+      right = -100;
+    }
+    DT_BL.setVelocity((left), percent);
+    DT_FL.setVelocity((left), percent);
+    DT_BR.setVelocity((right), percent);
+    DT_FR.setVelocity((right), percent);
     wait(5, msec);
   }
 }
